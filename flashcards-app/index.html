@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+    <title>Flashcards App</title>
+</head>
+
+<body>
+    <header class="header">
+        <h1>Flashcards App</h1>
+    </header>
+
+    <div class="container">
+        <nav class="sidebar" aria-label="Deck Navigation">
+            <h2>Decks</h2>
+            <ul id="decks-list">
+                <!-- Decks will be dynamically rendered here -->
+            </ul>
+            <button class="btn btn-primary" id="add-deck-btn" aria-label="Create a new deck">+ Add Deck</button>
+        </nav>
+
+        <main class="main-area">
+            <section id="cards-section" aria-labelledby="cards-heading">
+                <h2 id="cards-heading" class="sr-only">Flashcards</h2>
+                <div id="cards-container">
+                    <!-- Cards will be dynamically rendered here -->
+                </div>
+                <div class="card-controls" role="group" aria-label="Card navigation controls">
+                    <button class="btn btn-secondary" id="prev-btn" aria-label="Show previous card">← Previous</button>
+                    <button class="btn btn-secondary" id="next-btn" aria-label="Show next card">Next →</button>
+                    <button class="btn btn-success" id="add-card-btn" aria-label="Add a new card to this deck">+ Add
+                        Card</button>
+                    <button class="btn btn-primary" id="study-mode-btn"
+                        aria-label="Enter study mode for full-screen card review">🎓 Study Mode</button>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <footer class="footer">
+        <p>&copy; 2025 Flashcards App. All rights reserved.</p>
+    </footer>
+
+    <!-- Modal Backdrop -->
+    <div class="modal-backdrop" id="modalBackdrop">
+        <!-- Example Modal for Adding a Deck -->
+        <div class="modal" id="deckModal" aria-labelledby="deckModalTitle">
+            <div class="modal-header">
+                <h2 id="deckModalTitle">Create New Deck</h2>
+                <button class="modal-close" data-modal-close aria-label="Close dialog">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <label for="deckNameInput">Deck Name</label>
+                <input type="text" id="deckNameInput" placeholder="Enter deck name" class="modal-input"
+                    aria-describedby="deckNameHint" />
+                <p id="deckNameHint" class="sr-only">Enter a name for your new flashcard deck</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-modal-close>Cancel</button>
+                <button class="btn btn-primary" id="confirmCreateDeck">Create Deck</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="modal.js"></script>
+    <script src="app.js"></script>
+</body>
+
+</html>
