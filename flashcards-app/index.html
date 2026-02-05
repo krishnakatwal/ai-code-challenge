@@ -25,6 +25,11 @@
         <main class="main-area">
             <section id="cards-section" aria-labelledby="cards-heading">
                 <h2 id="cards-heading" class="sr-only">Flashcards</h2>
+                <div class="search-container">
+                    <input type="text" id="search-input" class="search-input" placeholder="Search cards..."
+                        aria-label="Search cards by front or back content">
+                    <div class="search-stats" id="search-stats" aria-live="polite" aria-atomic="true"></div>
+                </div>
                 <div id="cards-container">
                     <!-- Cards will be dynamically rendered here -->
                 </div>
@@ -68,6 +73,7 @@
     </div>
 
     <script src="modal.js"></script>
+    <script src="storage.js"></script>
     <script src="app.js"></script>
 </body>
 

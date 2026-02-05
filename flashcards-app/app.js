@@ -213,10 +213,16 @@ class UIManager {
     this.modal = null;
     this.currentCardIndex = 0; // Track which card is being viewed
     this.cardFlipState = new Map(); // Store flip state by cardId
+    this.searchManager = new SearchManager(); // Initialize search with debouncing
+    this.filteredCards = []; // Store filtered search results
+    this.isSearchActive = false; // Track if search is filtering
     this.init();
   }
 
   init() {
+    // Load persisted state from storage
+    this.loadPersistedState();
+
     // Initialize modal
     this.modal = new AccessibleModal("#deckModal");
 
@@ -227,6 +233,9 @@ class UIManager {
 
     // Wire up event listeners
     this.setupEventListeners();
+
+    // Setup search input listener
+    this.setupSearchListener();
 
     // Render initial deck list
     this.renderDeckList();
@@ -377,7 +386,7 @@ class UIManager {
 
   /**
    * Render cards for selected deck
-   * Resets flip state to prevent desync issues
+   * Uses filtered cards if search is active, otherwise shows all cards
    */
   renderCards() {
     const selectedDeck = this.deckManager.getSelectedDeck();
@@ -400,12 +409,25 @@ class UIManager {
       return;
     }
 
+    // Use filtered cards if search is active, otherwise use all cards
+    const cardsToDisplay = this.isSearchActive
+      ? this.filteredCards
+      : selectedDeck.cards;
+
+    if (this.isSearchActive && cardsToDisplay.length === 0) {
+      cardsContainer.innerHTML =
+        '<p style="text-align: center; color: var(--text-secondary);">No cards match your search.</p>';
+      return;
+    }
+
     // Reset card index if it's out of bounds
     if (this.currentCardIndex >= selectedDeck.cards.length) {
       this.currentCardIndex = 0;
     }
 
-    selectedDeck.cards.forEach((card, index) => {
+    // IMPORTANT: Iterate cardsToDisplay (filtered) not selectedDeck.cards (underlying)
+    // This ensures search filtering affects only the view, not the data
+    cardsToDisplay.forEach((card, index) => {
       const article = document.createElement("article");
       article.className = "card";
       article.setAttribute("role", "article");
@@ -507,6 +529,7 @@ class UIManager {
   /**
    * Handle deck changes from DeckManager
    * Resets flip state and card index on significant changes
+   * Saves state after any modification
    */
   handleDeckChange(event, data) {
     switch (event) {
@@ -515,12 +538,15 @@ class UIManager {
       case "deckUpdated":
         this.renderDeckList();
         this.renderCards();
+        this.savePersistedState();
         break;
       case "deckSelected":
         // Reset navigation state when switching decks
         this.currentCardIndex = 0;
         this.cardFlipState.clear();
+        this.clearSearch();
         this.renderCards();
+        this.savePersistedState();
         break;
       case "cardAdded":
       case "cardDeleted":
@@ -530,6 +556,7 @@ class UIManager {
           this.cardFlipState.delete(data.card.id);
         }
         this.renderCards();
+        this.savePersistedState();
         break;
     }
   }
@@ -919,6 +946,147 @@ class UIManager {
     alert(
       `Study Session Complete!\n\nCards Reviewed: ${cardsReviewed}\nTime Spent: ${minutes}m ${seconds}s`,
     );
+  }
+
+  /**
+   * Load persisted state from localStorage with safety checks
+   * Deep clones data to prevent mutations affecting stored state
+   */
+  loadPersistedState() {
+    try {
+      const savedState = storage.loadState();
+      if (savedState && savedState.decks && Array.isArray(savedState.decks)) {
+        // Deep clone decks to prevent mutations of original stored data
+        this.deckManager.decks = JSON.parse(JSON.stringify(savedState.decks));
+
+        // Calculate nextId safely - handle empty deck array
+        const deckIds = this.deckManager.decks
+          .map((d) => d.id)
+          .filter(Number.isInteger);
+        this.deckManager.nextId =
+          deckIds.length > 0 ? Math.max(...deckIds) + 1 : 1;
+
+        // Restore selected deck if it exists
+        if (
+          savedState.selectedDeckId &&
+          Number.isInteger(savedState.selectedDeckId)
+        ) {
+          const deck = this.deckManager.getDeckById(savedState.selectedDeckId);
+          if (deck) {
+            this.deckManager.selectedDeckId = savedState.selectedDeckId;
+          }
+        }
+
+        console.log(
+          "Restored state from localStorage with",
+          savedState.decks.length,
+          "decks (nextId=",
+          this.deckManager.nextId,
+          ")",
+        );
+      }
+    } catch (error) {
+      console.error("Failed to load persisted state:", error);
+      // Fall back to initial decks if load fails
+    }
+  }
+
+  /**
+   * Save current state to localStorage
+   */
+  savePersistedState() {
+    try {
+      const state = {
+        decks: this.deckManager.decks,
+        selectedDeckId: this.deckManager.selectedDeckId,
+        searchQuery: this.getSearchQuery(),
+      };
+      const success = storage.saveState(state);
+      if (success) {
+        console.log("State saved to localStorage");
+      }
+    } catch (error) {
+      console.error("Failed to save state:", error);
+    }
+  }
+
+  /**
+   * Setup search input listener with debouncing
+   */
+  setupSearchListener() {
+    const searchInput = document.getElementById("search-input");
+    if (!searchInput) return;
+
+    searchInput.addEventListener("input", (e) => {
+      const query = e.target.value;
+      this.performSearch(query);
+    });
+  }
+
+  /**
+   * Perform debounced search on current deck's cards
+   * @param {string} query - Search query
+   */
+  performSearch(query) {
+    const selectedDeck = this.deckManager.getSelectedDeck();
+    if (!selectedDeck) return;
+
+    this.searchManager.search(
+      selectedDeck.cards,
+      query,
+      (filteredCards, matchCount) => {
+        this.filteredCards = filteredCards;
+        this.isSearchActive = query.trim() !== "";
+        this.updateSearchStats(selectedDeck.cards.length, matchCount);
+        this.renderCards();
+      },
+    );
+  }
+
+  /**
+   * Get current search query
+   * @returns {string} Current search query
+   */
+  getSearchQuery() {
+    const searchInput = document.getElementById("search-input");
+    return searchInput ? searchInput.value : "";
+  }
+
+  /**
+   * Clear search and show all cards
+   */
+  clearSearch() {
+    const searchInput = document.getElementById("search-input");
+    if (searchInput) {
+      searchInput.value = "";
+      this.isSearchActive = false;
+      this.filteredCards = [];
+      this.updateSearchStats(0, 0);
+      this.renderCards();
+    }
+  }
+
+  /**
+   * Update search statistics display
+   * @param {number} total - Total cards in deck
+   * @param {number} matches - Number of matching cards
+   */
+  updateSearchStats(total, matches) {
+    const statsElement = document.getElementById("search-stats");
+    if (!statsElement) return;
+
+    if (!this.isSearchActive) {
+      statsElement.innerHTML = "";
+      return;
+    }
+
+    const percentage = total > 0 ? Math.round((matches / total) * 100) : 0;
+    const statsHtml = `
+      <span class="search-match-count">
+        ${matches} match${matches !== 1 ? "es" : ""} of ${total} cards (${percentage}%)
+      </span>
+    `;
+    statsElement.innerHTML = statsHtml;
   }
 
   /**
