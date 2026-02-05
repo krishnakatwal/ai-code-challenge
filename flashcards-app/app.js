@@ -344,6 +344,57 @@ class UIManager {
     decksList.innerHTML = "";
 
     const decks = this.deckManager.getAllDecks();
+    if (!decks || decks.length === 0) {
+      // Accessible empty state for no decks
+      const empty = document.createElement("div");
+      empty.className = "empty-state";
+      empty.setAttribute("role", "region");
+      empty.setAttribute("aria-live", "polite");
+
+      const icon = document.createElement("div");
+      icon.className = "empty-icon";
+      icon.innerHTML = `
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M3 7h18v13H3z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M8 3h8v4H8z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      `;
+
+      const title = document.createElement("h3");
+      title.className = "empty-title";
+      title.textContent = "No decks yet";
+
+      const instructions = document.createElement("p");
+      instructions.className = "empty-instructions";
+      instructions.textContent =
+        "Create your first deck to start adding flashcards. You can import decks or create one now.";
+
+      const cta = document.createElement("button");
+      cta.className = "btn btn-primary";
+      cta.id = "add-deck-empty-btn";
+      cta.textContent = "+ Create Deck";
+      cta.setAttribute("aria-label", "Create a new deck");
+      cta.addEventListener("click", () => {
+        // Reuse existing add-deck button behavior
+        const addBtn = document.getElementById("add-deck-btn");
+        if (addBtn) addBtn.click();
+      });
+
+      empty.appendChild(icon);
+      empty.appendChild(title);
+      empty.appendChild(instructions);
+      empty.appendChild(cta);
+
+      decksList.appendChild(empty);
+
+      // Move focus to CTA for keyboard users
+      setTimeout(() => {
+        cta.focus();
+      }, 0);
+
+      return;
+    }
+
     decks.forEach((deck) => {
       const li = document.createElement("li");
       li.className = "deck-item";
@@ -358,16 +409,12 @@ class UIManager {
         button.classList.add("active");
       }
 
-      // No event listeners added here - using event delegation in setupEventListeners()
-
-      // Add delete button for each deck
+      // Add delete button for each deck (delegated handlers exist)
       const deleteBtn = document.createElement("button");
       deleteBtn.className = "deck-delete-btn";
       deleteBtn.setAttribute("aria-label", `Delete ${deck.name}`);
       deleteBtn.setAttribute("title", "Delete deck");
       deleteBtn.innerHTML = "&times;";
-
-      // No event listeners added here - using event delegation in setupEventListeners()
 
       li.appendChild(button);
       li.appendChild(deleteBtn);

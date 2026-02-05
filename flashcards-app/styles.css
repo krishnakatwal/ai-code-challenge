@@ -440,6 +440,38 @@ body {
   justify-content: center;
 }
 
+/* Empty state styles */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.empty-icon svg {
+  color: var(--primary-color);
+  opacity: 0.95;
+}
+
+.empty-title {
+  font-size: 1rem;
+  color: var(--text-primary);
+  margin-top: 0.25rem;
+}
+
+.empty-instructions {
+  font-size: 0.9rem;
+  max-width: 220px;
+}
+
+.empty-state .btn {
+  margin-top: var(--spacing-sm);
+}
+
 /* Responsive Design */
 
 /* Large Desktop (1200px+) */
